@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1765708606190,
+      "tag": "0000_boring_exiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1766929497298,
+      "tag": "0001_pink_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767051326904,
+      "tag": "0002_milky_misty_knight",
+      "breakpoints": true
+    }
+  ]
+}
