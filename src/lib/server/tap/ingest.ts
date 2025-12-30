@@ -1,118 +1,79 @@
-import { AppBskyActorProfile } from '@atcute/bluesky';
+import { AppBskyFeedPost } from '@atcute/bluesky';
 import { safeParse } from '@atcute/lexicons/validations';
 import type { TapEvent } from '@atcute/tap';
 import { eq } from 'drizzle-orm';
 
-import { XyzStatusphereStatus } from '$lib/lexicons';
 import { db } from '$lib/server/db';
-import { identity, profile, status } from '$lib/server/db/schema';
+import { posts, users } from '$lib/server/db/schema';
 
 const toAtUri = (did: string, collection: string, rkey: string): string => {
 	return `at://${did}/${collection}/${rkey}`;
 };
 
 /**
- * ingests a single tap event into the local database.
- *
+ * ingests a single tap event into the local database
+ * only handles app.bsky.feed.post events for registered tumbsky users
  * @param event tap event
  */
 export const ingestTapEvent = async (event: TapEvent): Promise<void> => {
-	if (event.type === 'identity') {
-		const updatedAt = Date.now();
-
-		await db
-			.insert(identity)
-			.values({
-				did: event.did,
-				handle: event.handle,
-				isActive: event.isActive,
-				status: event.status,
-				updatedAt,
-			})
-			.onConflictDoUpdate({
-				target: identity.did,
-				set: {
-					handle: event.handle,
-					isActive: event.isActive,
-					status: event.status,
-					updatedAt,
-				},
-			})
-			.run();
-
+	// ignore identity and profile events - tumbsky only tracks posts
+	if (event.type === 'identity' || event.collection === 'app.bsky.actor.profile') {
 		return;
 	}
 
-	if (event.collection === 'app.bsky.actor.profile') {
-		if (event.rkey !== 'self') {
+	if (event.collection === 'app.bsky.feed.post') {
+		// only index posts from registered users
+		const user = await db.select().from(users).where(eq(users.did, event.did)).get();
+		if (!user) {
 			return;
 		}
 
-		if (event.action === 'delete') {
-			await db.delete(profile).where(eq(profile.did, event.did)).run();
-			return;
-		}
-
-		const parsed = safeParse(AppBskyActorProfile.mainSchema, event.record);
-		if (!parsed.ok) {
-			return;
-		}
-
-		const record = parsed.value;
-		const indexedAt = Date.now();
-
-		await db
-			.insert(profile)
-			.values({
-				did: event.did,
-				record,
-				indexedAt,
-			})
-			.onConflictDoUpdate({
-				target: profile.did,
-				set: {
-					record,
-					indexedAt,
-				},
-			})
-			.run();
-
-		return;
-	}
-
-	if (event.collection === 'xyz.statusphere.status') {
 		const uri = toAtUri(event.did, event.collection, event.rkey);
 
 		if (event.action === 'delete') {
-			await db.delete(status).where(eq(status.uri, uri)).run();
+			await db.delete(posts).where(eq(posts.uri, uri)).run();
 			return;
 		}
 
-		const parsed = safeParse(XyzStatusphereStatus.mainSchema, event.record);
+		const parsed = safeParse(AppBskyFeedPost.mainSchema, event.record);
 		if (!parsed.ok) {
 			return;
 		}
 
 		const record = parsed.value;
 
+		// extract post data
+		const text = record.text || '';
+		const hasImages = !!(record.embed?.$type === 'app.bsky.embed.images');
+		const hasEmbed = !!record.embed;
+		const embedData = record.embed || null;
+
 		const createdAt = Date.parse(record.createdAt);
 		const indexedAt = Date.now();
-		const sortAt = Number.isNaN(createdAt) ? indexedAt : Math.min(createdAt, indexedAt);
 
 		await db
-			.insert(status)
+			.insert(posts)
 			.values({
 				uri,
-				authorDid: event.did,
+				userDid: event.did,
+				cid: event.cid,
 				rkey: event.rkey,
 				record,
-				sortAt,
+				text,
+				hasImages,
+				hasEmbed,
+				embedData,
+				createdAt: Number.isNaN(createdAt) ? indexedAt : createdAt,
 				indexedAt,
 			})
 			.onConflictDoUpdate({
-				target: status.uri,
+				target: posts.uri,
 				set: {
 					record,
+					text,
+					hasImages,
+					hasEmbed,
+					embedData,
 					indexedAt,
 				},
 			})
