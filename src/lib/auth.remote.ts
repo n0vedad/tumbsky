@@ -9,7 +9,7 @@ import { OAuthResolverError } from '@atcute/oauth-node-client';
 import { form, getRequestEvent } from '$app/server';
 
 import { SESSION_COOKIE } from './server/auth';
-import { oauth } from './server/oauth';
+import { getOAuth } from './server/oauth';
 
 const actorIdentifierString = v.custom<ActorIdentifier>(
 	(input) => isActorIdentifier(input),
@@ -21,6 +21,11 @@ export const doLogin = form(
 		identifier: actorIdentifierString,
 	}),
 	async ({ identifier }) => {
+		const oauth = await getOAuth();
+		if (!oauth) {
+			invalid(`OAuth requires https - use cloudflared or ngrok for local testing (see README.md)`);
+		}
+
 		let url: URL;
 
 		try {

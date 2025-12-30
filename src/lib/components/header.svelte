@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { doLogout } from '$lib/auth.remote';
-	import { getCurrentUser } from '$lib/status.remote';
+	import tumbskyLogo from '$lib/assets/tumbsky.svg';
 
-	const user = await getCurrentUser();
+	interface Props {
+		currentUser?: { did: string; handle: string } | null;
+	}
+
+	const { currentUser }: Props = $props();
 </script>
 
 <header class="header">
-	<h1 class="title">statusphere</h1>
+	<img src={tumbskyLogo} alt="tumbsky" class="logo" />
 
 	<div class="actions">
-		{#if user}
-			<span class="handle">@{user.handle}</span>
+		{#if currentUser}
+			<span class="handle">@{currentUser.handle}</span>
 			<form
 				{...doLogout.enhance(async ({ submit }) => {
 					await submit();
@@ -19,8 +23,6 @@
 			>
 				<button type="submit" class="btn btn-ghost">sign out</button>
 			</form>
-		{:else}
-			<a href="/login" class="btn btn-primary">sign in</a>
 		{/if}
 	</div>
 </header>
@@ -28,16 +30,18 @@
 <style>
 	.header {
 		display: flex;
-		justify-content: space-between;
+		flex-direction: column;
 		align-items: center;
 		margin-bottom: 1.5rem;
 		border-bottom: 1px solid var(--color-border);
-		padding-bottom: 1.5rem;
+		padding-bottom: 0;
 	}
 
-	.title {
-		font-weight: 700;
-		font-size: 1.5rem;
+	.logo {
+		height: auto;
+		width: min(24rem, 90vw);
+		max-width: 500px;
+		display: block;
 	}
 
 	.actions {
