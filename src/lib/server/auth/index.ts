@@ -13,9 +13,9 @@ import {
 import { getRequestEvent } from '$app/server';
 
 import { getSignedCookie } from '$lib/server/auth/signed-cookie';
-import { oauth } from '$lib/server/oauth';
+import { getOAuth } from '$lib/server/oauth';
 
-export const SESSION_COOKIE = 'statusphere_session';
+export const SESSION_COOKIE = 'tumbsky_session';
 
 export interface Session {
 	did: Did;
@@ -57,6 +57,11 @@ export const requireAuth = async (): Promise<AuthContext> => {
 	if (!isDid(did)) {
 		cookies.delete(SESSION_COOKIE, { path: '/' });
 		error(401, `not signed in`);
+	}
+
+	const oauth = await getOAuth();
+	if (!oauth) {
+		error(503, `OAuth not configured - requires https URL`);
 	}
 
 	try {

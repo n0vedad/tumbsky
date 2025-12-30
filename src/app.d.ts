@@ -8,6 +8,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			auth?: AuthContext;
+			session?: { did: `did:${string}:${string}` };
 		}
 		// interface PageData {}
 		// interface PageState {}

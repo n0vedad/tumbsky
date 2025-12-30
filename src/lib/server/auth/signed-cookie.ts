@@ -6,14 +6,23 @@ import { env } from '$env/dynamic/private';
 
 import { fromBase64Url, toBase64Url } from '@atcute/multibase';
 
-if (!env.COOKIE_SECRET) {
-	throw new Error(`COOKIE_SECRET is not set`);
-}
-
 const SEPARATOR = '.';
 
+const getCookieSecret = (): string => {
+	// use a build-time placeholder if COOKIE_SECRET is not set (for Railway builds)
+	// at runtime, this will throw an error if not properly configured
+	const secret = env.COOKIE_SECRET || 'BUILD_TIME_PLACEHOLDER';
+
+	if (secret === 'BUILD_TIME_PLACEHOLDER' && env.DATABASE_URL) {
+		// we're at runtime (DATABASE_URL exists) but COOKIE_SECRET is not set
+		throw new Error(`COOKIE_SECRET is not set`);
+	}
+
+	return secret;
+};
+
 const hmacSha256 = (data: string): Uint8Array => {
-	return createHmac('sha256', env.COOKIE_SECRET).update(data).digest();
+	return createHmac('sha256', getCookieSecret()).update(data).digest();
 };
 
 export const getSignedCookie = (cookies: Cookies, name: string): string | null => {

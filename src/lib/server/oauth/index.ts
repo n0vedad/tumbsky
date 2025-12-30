@@ -8,45 +8,67 @@ import {
 	WellKnownHandleResolver,
 } from '@atcute/identity-resolver';
 import { NodeDnsHandleResolver } from '@atcute/identity-resolver-node';
-import { OAuthClient, importJwkKey } from '@atcute/oauth-node-client';
+import type { OAuthClient } from '@atcute/oauth-node-client';
 
 import { stores } from './stores';
 
-if (!env.OAUTH_PUBLIC_URL) {
-	throw new Error(`OAUTH_PUBLIC_URL is not set`);
-}
+let _oauth: OAuthClient | null = null;
 
-if (!env.OAUTH_PRIVATE_KEY_JWK) {
-	throw new Error(`OAUTH_PRIVATE_KEY_JWK is not set`);
-}
+/**
+ * get the OAuth client instance, initializing it if needed
+ * @returns OAuth client or null if not configured
+ */
+export const getOAuth = async (): Promise<OAuthClient | null> => {
+	if (_oauth) {
+		return _oauth;
+	}
 
-const publicUrl = new URL(env.OAUTH_PUBLIC_URL);
+	// OAuth node client requires https for security
+	if (!env.OAUTH_PUBLIC_URL || !env.OAUTH_PUBLIC_URL.startsWith('https://')) {
+		console.error('[OAuth] OAUTH_PUBLIC_URL check failed:', {
+			value: env.OAUTH_PUBLIC_URL,
+			isDefined: !!env.OAUTH_PUBLIC_URL,
+			startsWithHttps: env.OAUTH_PUBLIC_URL?.startsWith('https://'),
+		});
+		return null;
+	}
 
-export const oauth = new OAuthClient({
-	metadata: {
-		client_id: new URL('/oauth-client-metadata.json', publicUrl).href,
-		client_name: 'statusphere',
-		redirect_uris: [new URL('/oauth/callback', publicUrl).href],
-		scope: 'atproto repo:xyz.statusphere.status',
-		jwks_uri: new URL('/jwks.json', publicUrl).href,
-	},
+	if (!env.OAUTH_PRIVATE_KEY_JWK) {
+		throw new Error(`OAUTH_PRIVATE_KEY_JWK is not set`);
+	}
 
-	keyset: await Promise.all([importJwkKey(env.OAUTH_PRIVATE_KEY_JWK)]),
+	const { OAuthClient, importJwkKey } = await import('@atcute/oauth-node-client');
 
-	actorResolver: new LocalActorResolver({
-		handleResolver: new CompositeHandleResolver({
-			methods: {
-				dns: new NodeDnsHandleResolver(),
-				http: new WellKnownHandleResolver(),
-			},
+	const publicUrl = new URL(env.OAUTH_PUBLIC_URL);
+
+	_oauth = new OAuthClient({
+		metadata: {
+			client_id: new URL('/oauth-client-metadata.json', publicUrl).href,
+			client_name: 'tumbsky',
+			redirect_uris: [new URL('/oauth/callback', publicUrl).href],
+			scope: 'atproto transition:generic',
+			jwks_uri: new URL('/jwks.json', publicUrl).href,
+		},
+
+		keyset: await Promise.all([importJwkKey(env.OAUTH_PRIVATE_KEY_JWK)]),
+
+		actorResolver: new LocalActorResolver({
+			handleResolver: new CompositeHandleResolver({
+				methods: {
+					dns: new NodeDnsHandleResolver(),
+					http: new WellKnownHandleResolver(),
+				},
+			}),
+			didDocumentResolver: new CompositeDidDocumentResolver({
+				methods: {
+					plc: new PlcDidDocumentResolver(),
+					web: new WebDidDocumentResolver(),
+				},
+			}),
 		}),
-		didDocumentResolver: new CompositeDidDocumentResolver({
-			methods: {
-				plc: new PlcDidDocumentResolver(),
-				web: new WebDidDocumentResolver(),
-			},
-		}),
-	}),
 
-	stores,
-});
+		stores,
+	});
+
+	return _oauth;
+};
