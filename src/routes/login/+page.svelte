@@ -8,7 +8,7 @@
 </script>
 
 <div class="page">
-	<h1 class="title">sign in to statusphere</h1>
+	<h1 class="title">sign in to tumbsky</h1>
 	<p class="subtitle">enter your Bluesky handle or DID</p>
 
 	<form class="form" {...doLogin}>

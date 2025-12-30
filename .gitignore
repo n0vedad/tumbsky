@@ -33,3 +33,6 @@ vite.config.ts.timestamp-*
 # AI
 .claude
 AGENTS.md
+
+# OAuth metadata (generated dynamically)
+oauth-metadata/

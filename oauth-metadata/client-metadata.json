@@ -1,9 +1,0 @@
-{
-  "client_id": "https://oauth.katerstrophal.world/tumbsky/client-metadata.json",
-  "client_name": "tumbsky",
-  "redirect_uris": [
-    "https://localhost-temp.example.com/oauth/callback"
-  ],
-  "scope": "atproto transition:generic",
-  "jwks_uri": "https://oauth.katerstrophal.world/tumbsky/jwks.json"
-}
