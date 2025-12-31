@@ -46,12 +46,12 @@
 <style>
 	/* Use :global() to allow custom CSS to override these styles easily */
 	:global(.post-card) {
+		transition: box-shadow 0.2s;
+		margin-bottom: 1rem;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-lg);
 		background-color: var(--color-bg-elevated);
 		padding: 1.5rem;
-		margin-bottom: 1rem;
-		transition: box-shadow 0.2s;
 	}
 
 	@media (max-width: 640px) {
@@ -90,8 +90,8 @@
 	:global(.post-footer) {
 		display: flex;
 		justify-content: flex-end;
-		padding-top: 0.75rem;
 		border-top: 1px solid var(--color-border);
+		padding-top: 0.75rem;
 	}
 
 	:global(.post-date) {

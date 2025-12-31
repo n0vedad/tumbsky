@@ -4,7 +4,9 @@ A Tumblr-style Bluesky client with custom CSS styling for your posts.
 
 ## What is Tumbsky?
 
-Tumbsky allows you to display your Bluesky posts on a personalized page with custom CSS styling, similar to how Tumblr blogs work. Each user gets their own customizable page where they can style their posts however they want.
+Tumbsky allows you to display your Bluesky posts on a personalized page with custom CSS styling,
+similar to how Tumblr blogs work. Each user gets their own customizable page where they can style
+their posts however they want.
 
 ### Features (MVP)
 
@@ -27,7 +29,7 @@ Posts are created on bsky.app and displayed beautifully on Tumbsky.
 - **Frontend**: SvelteKit + TypeScript
 - **Backend**: SvelteKit (SSR)
 - **Database**: libSQL/SQLite with Drizzle ORM
-- **ATProto**: @atcute/* libraries
+- **ATProto**: @atcute/\* libraries
 - **Real-time**: Tap (ATProto Firehose)
 
 Based on the [atcute-statusphere-example](https://github.com/mary-ext/atcute-statusphere-example).
@@ -74,7 +76,8 @@ Based on the [atcute-statusphere-example](https://github.com/mary-ext/atcute-sta
 
 4. Set up a tunnel for local development:
 
-   OAuth requires a publicly accessible URL. Use [ngrok](https://ngrok.com/) or [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/):
+   OAuth requires a publicly accessible URL. Use [ngrok](https://ngrok.com/) or
+   [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/):
 
    ```sh
    # Example with cloudflared
@@ -156,5 +159,6 @@ TBD
 ## Acknowledgments
 
 - Built with [atcute](https://github.com/mary-ext/atcute) by Mary
-- Based on [Statusphere example](https://github.com/bluesky-social/statusphere-example-app) by Bluesky
+- Based on [Statusphere example](https://github.com/bluesky-social/statusphere-example-app) by
+  Bluesky
 - Inspired by Tumblr's customizable blogs

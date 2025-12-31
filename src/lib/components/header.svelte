@@ -38,10 +38,10 @@
 	}
 
 	.logo {
-		height: auto;
+		display: block;
 		width: min(24rem, 90vw);
 		max-width: 500px;
-		display: block;
+		height: auto;
 	}
 
 	.actions {

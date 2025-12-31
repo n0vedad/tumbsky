@@ -49,10 +49,10 @@
 	}
 
 	.back-nav a {
+		transition: color 0.15s;
 		color: var(--color-text-muted);
 		font-size: 0.875rem;
 		text-decoration: none;
-		transition: color 0.15s;
 	}
 
 	.back-nav a:hover {
@@ -71,9 +71,9 @@
 	}
 
 	.handle {
+		color: var(--color-text);
 		font-weight: 700;
 		font-size: 2rem;
-		color: var(--color-text);
 	}
 
 	.error-card {

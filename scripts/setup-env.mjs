@@ -12,7 +12,7 @@ async function generateOAuthKey() {
 			namedCurve: 'P-256',
 		},
 		true,
-		['sign', 'verify']
+		['sign', 'verify'],
 	);
 
 	const jwk = await webcrypto.subtle.exportKey('jwk', keyPair.privateKey);

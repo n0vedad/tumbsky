@@ -37,12 +37,7 @@ export const fetchPostsFromApi = async (client: Client, did: Did, limit: number 
  * @param cid post CID
  * @param record post record
  */
-export const savePost = async (
-	userDid: Did,
-	uri: string,
-	cid: string,
-	record: AppBskyFeedPost.Main,
-) => {
+export const savePost = async (userDid: Did, uri: string, cid: string, record: AppBskyFeedPost.Main) => {
 	const now = Date.now();
 
 	// extract text from post

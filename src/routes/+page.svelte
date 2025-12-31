@@ -129,9 +129,9 @@
 
 	.actions {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.75rem;
 		margin-bottom: 2rem;
-		flex-wrap: wrap;
 	}
 
 	@media (max-width: 640px) {
@@ -176,9 +176,9 @@
 	}
 
 	.btn-primary {
+		flex: 1;
 		background-color: var(--color-accent);
 		color: white;
-		flex: 1;
 	}
 
 	.btn-primary:hover {
@@ -186,10 +186,10 @@
 	}
 
 	.btn-secondary {
+		flex: 1;
 		border: 1px solid var(--color-border);
 		background-color: var(--color-bg);
 		color: var(--color-text);
-		flex: 1;
 	}
 
 	.btn-secondary:hover {

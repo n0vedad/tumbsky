@@ -5,25 +5,12 @@ import safeParser from 'postcss-safe-parser';
 /**
  * list of dangerous CSS properties that should be blocked
  */
-const BLOCKED_PROPERTIES = new Set([
-	'behavior',
-	'-moz-binding',
-	'binding',
-	'link',
-	'filter',
-]);
+const BLOCKED_PROPERTIES = new Set(['behavior', '-moz-binding', 'binding', 'link', 'filter']);
 
 /**
  * list of dangerous CSS functions that should be blocked
  */
-const BLOCKED_FUNCTIONS = [
-	'expression',
-	'javascript',
-	'vbscript',
-	'import',
-	'url-prefix',
-	'domain',
-];
+const BLOCKED_FUNCTIONS = ['expression', 'javascript', 'vbscript', 'import', 'url-prefix', 'domain'];
 
 /**
  * list of allowed at-rules
@@ -137,9 +124,7 @@ export async function sanitizeCSS(css: string): Promise<string | null> {
  * @param css user-provided CSS string
  * @returns validation result with errors
  */
-export async function validateCSS(
-	css: string,
-): Promise<{ valid: boolean; errors: string[] }> {
+export async function validateCSS(css: string): Promise<{ valid: boolean; errors: string[] }> {
 	const errors: string[] = [];
 
 	if (!css || typeof css !== 'string') {

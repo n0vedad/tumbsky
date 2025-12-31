@@ -38,9 +38,9 @@
 
 	.empty-state p {
 		margin-bottom: 0.5rem;
+		color: var(--color-text);
 		font-weight: 500;
 		font-size: 1.125rem;
-		color: var(--color-text);
 	}
 
 	.empty-hint {

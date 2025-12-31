@@ -125,11 +125,7 @@
 					</button>
 					<button class="btn btn-secondary" onclick={loadPreview}>load preview</button>
 					{#if user?.customCss}
-						<button
-							class="btn btn-danger"
-							onclick={() => (showClearConfirm = true)}
-							disabled={isSaving}
-						>
+						<button class="btn btn-danger" onclick={() => (showClearConfirm = true)} disabled={isSaving}>
 							clear CSS
 						</button>
 					{/if}
@@ -144,9 +140,7 @@
 					<h3>clear custom CSS?</h3>
 					<p>this will permanently remove your custom CSS. this action cannot be undone.</p>
 					<div class="confirm-actions">
-						<button class="btn btn-secondary" onclick={() => (showClearConfirm = false)}>
-							cancel
-						</button>
+						<button class="btn btn-secondary" onclick={() => (showClearConfirm = false)}> cancel </button>
 						<button class="btn btn-danger" onclick={handleClear} disabled={isSaving}>
 							{isSaving ? 'clearing...' : 'yes, clear CSS'}
 						</button>
@@ -186,7 +180,8 @@
 						<div class="preview-post">
 							<div class="post-card">
 								<div class="post-text">
-									this is a sample post to preview your custom CSS styles. you can see how your posts will look with the current CSS.
+									this is a sample post to preview your custom CSS styles. you can see how your posts will
+									look with the current CSS.
 								</div>
 								<div class="post-footer">
 									<span class="post-date">2 hours ago</span>
@@ -197,8 +192,8 @@
 					</div>
 				{:else}
 					<p class="preview-hint">
-						click "load preview" to see how your CSS looks, or view your page at <a
-							href="/@{user.handle}">@{user.handle}</a
+						click "load preview" to see how your CSS looks, or view your page at <a href="/@{user.handle}"
+							>@{user.handle}</a
 						>
 					</p>
 				{/if}
@@ -245,10 +240,10 @@
 	}
 
 	.back-nav a {
+		transition: color 0.15s;
 		color: var(--color-text-muted);
 		font-size: 0.875rem;
 		text-decoration: none;
-		transition: color 0.15s;
 	}
 
 	.back-nav a:hover {
@@ -291,22 +286,22 @@
 
 	.actions {
 		display: flex;
-		gap: 0.5rem;
 		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
 
 	.css-editor {
-		width: 100%;
-		min-height: 300px;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		background-color: var(--color-bg);
 		padding: 1rem;
+		width: 100%;
+		min-height: 300px;
+		resize: vertical;
 		color: var(--color-text);
-		font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
 		font-size: 0.875rem;
 		line-height: 1.6;
-		resize: vertical;
+		font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
 	}
 
 	.css-editor:focus {
@@ -337,9 +332,9 @@
 	}
 
 	.selector-list li {
-		padding: 0.5rem;
 		border-radius: var(--radius-md);
 		background-color: var(--color-bg);
+		padding: 0.5rem;
 		font-size: 0.875rem;
 	}
 
@@ -348,8 +343,8 @@
 		background-color: var(--color-accent-bg);
 		padding: 0.125rem 0.375rem;
 		color: var(--color-accent);
-		font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
 		font-size: 0.8125rem;
+		font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
 	}
 
 	.preview-section {
@@ -373,8 +368,8 @@
 
 	.preview-hint a {
 		color: var(--color-accent);
-		text-decoration: none;
 		font-weight: 500;
+		text-decoration: none;
 	}
 
 	.preview-hint a:hover {
@@ -391,11 +386,11 @@
 
 	/* Minimal default styles for preview - allow custom CSS to override easily */
 	.preview-post .post-card {
+		margin-bottom: 1rem;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-lg);
 		background-color: var(--color-bg);
 		padding: 1.5rem;
-		margin-bottom: 1rem;
 	}
 
 	.preview-post .post-text {
@@ -404,10 +399,10 @@
 
 	.preview-post .post-footer {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: center;
 		gap: 0.5rem;
-		flex-wrap: wrap;
 	}
 
 	.btn {
@@ -479,18 +474,18 @@
 	}
 
 	.confirm-card {
+		margin-bottom: 1rem;
 		border: 1px solid #ef4444;
 		border-radius: var(--radius-md);
 		background-color: #fee2e2;
 		padding: 1.5rem;
-		margin-bottom: 1rem;
 	}
 
 	.confirm-card h3 {
 		margin: 0 0 0.5rem 0;
 		color: #991b1b;
-		font-size: 1.125rem;
 		font-weight: 600;
+		font-size: 1.125rem;
 	}
 
 	.confirm-card p {
@@ -501,7 +496,7 @@
 
 	.confirm-actions {
 		display: flex;
-		gap: 0.5rem;
 		justify-content: flex-end;
+		gap: 0.5rem;
 	}
 </style>
