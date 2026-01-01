@@ -221,9 +221,9 @@ tumbsky/
 │   │   │   ├── post-card.svelte
 │   │   │   └── post-list.svelte
 │   │   ├── server/          # Server-side code
-│   │   │   ├── auth/        # Cookie signing
-│   │   │   ├── db/          # Drizzle schema & client
-│   │   │   ├── oauth/       # OAuth client setup
+│   │   │   ├── auth/        # Session validation, cookie signing
+│   │   │   ├── db/          # Drizzle schema, client, migrations
+│   │   │   ├── oauth/       # OAuth client setup & stores
 │   │   │   ├── posts/       # Post fetching & syncing
 │   │   │   ├── users/       # User management
 │   │   │   ├── tap/         # Firehose integration
@@ -238,8 +238,9 @@ tumbsky/
 │   │   ├── oauth-client-metadata.json/  # OAuth metadata endpoint
 │   │   ├── jwks.json/       # JWKS endpoint
 │   │   └── api/             # API endpoints
-│   └── hooks.server.ts      # Session handling
+│   └── hooks.server.ts      # Session handling & migrations
 ├── drizzle/                 # Database migrations
+│   ├── 0000_initial_oauth_tables.sql
 │   ├── 0001_initial_users_and_posts_tables.sql
 │   └── 0002_add_posts_indexes.sql
 ├── scripts/
@@ -248,10 +249,6 @@ tumbsky/
 ├── railway.json             # Railway deployment config
 └── .env.example             # Environment template
 ```
-
-## Contributing
-
-See [PLAN.md](PLAN.md) for the project roadmap and open questions.
 
 ## License
 

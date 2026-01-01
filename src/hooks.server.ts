@@ -10,6 +10,10 @@ import { env } from '$env/dynamic/private';
 
 import { SESSION_COOKIE } from '$lib/server/auth';
 import { getSignedCookie } from '$lib/server/auth/signed-cookie';
+import { runMigrations } from '$lib/server/db/migrate';
+
+// run migrations on startup
+await runMigrations();
 
 /**
  * loads session from signed cookie into event.locals

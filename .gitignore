@@ -36,3 +36,6 @@ AGENTS.md
 
 # OAuth metadata (generated dynamically)
 oauth-metadata/
+
+# IDE
+.vscode/
