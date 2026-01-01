@@ -6,7 +6,7 @@
       "idx": 0,
       "version": "6",
       "when": 1765708606190,
-      "tag": "0000_boring_exiles",
+      "tag": "0000_initial_oauth_and_statusphere_tables",
       "breakpoints": true
     },
     {
@@ -21,6 +21,13 @@
       "version": "6",
       "when": 1767051326904,
       "tag": "0002_milky_misty_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1735748400000,
+      "tag": "0003_drop_statusphere_tables",
       "breakpoints": true
     }
   ]
