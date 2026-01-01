@@ -1,3 +1,9 @@
+/**
+ * Firehose event ingestion
+ *
+ * processes real-time ATProto events from Tap/Firehose.
+ * filters events to only track posts from registered Tumbsky users.
+ */
 import { AppBskyFeedPost } from '@atcute/bluesky';
 import { safeParse } from '@atcute/lexicons/validations';
 import type { TapEvent } from '@atcute/tap';
@@ -6,26 +12,35 @@ import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, users } from '$lib/server/db/schema';
 
+/**
+ * constructs AT-URI from components
+ *
+ * format: at://did/collection/rkey
+ */
 const toAtUri = (did: string, collection: string, rkey: string): string => {
 	return `at://${did}/${collection}/${rkey}`;
 };
 
 /**
- * ingests a single tap event into the local database
- * only handles app.bsky.feed.post events for registered tumbsky users
- * @param event tap event
+ * ingests a single Firehose event into database
+ *
+ * only processes app.bsky.feed.post events for registered Tumbsky users.
+ * handles both creates/updates and deletes. validates record schema before ingesting.
+ * upserts to handle duplicate events or backfills.
+ *
+ * @param event Tap event from Firehose
  */
 export const ingestTapEvent = async (event: TapEvent): Promise<void> => {
-	// ignore identity and profile events - tumbsky only tracks posts
+	// ignore identity updates and profile changes (Tumbsky only tracks posts)
 	if (event.type === 'identity' || event.collection === 'app.bsky.actor.profile') {
 		return;
 	}
 
 	if (event.collection === 'app.bsky.feed.post') {
-		// only index posts from registered users
+		// only index posts from registered Tumbsky users
 		const user = await db.select().from(users).where(eq(users.did, event.did)).get();
 		if (!user) {
-			return;
+			return; // skip posts from unregistered users
 		}
 
 		const uri = toAtUri(event.did, event.collection, event.rkey);
@@ -35,14 +50,14 @@ export const ingestTapEvent = async (event: TapEvent): Promise<void> => {
 			return;
 		}
 
+		// validate post record schema
 		const parsed = safeParse(AppBskyFeedPost.mainSchema, event.record);
 		if (!parsed.ok) {
-			return;
+			return; // skip invalid records
 		}
 
 		const record = parsed.value;
 
-		// extract post data
 		const text = record.text || '';
 		const hasImages = !!(record.embed?.$type === 'app.bsky.embed.images');
 		const hasEmbed = !!record.embed;
@@ -51,6 +66,7 @@ export const ingestTapEvent = async (event: TapEvent): Promise<void> => {
 		const createdAt = Date.parse(record.createdAt);
 		const indexedAt = Date.now();
 
+		// upsert to handle both new posts and edits
 		await db
 			.insert(posts)
 			.values({

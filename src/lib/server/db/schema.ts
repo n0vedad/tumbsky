@@ -1,8 +1,20 @@
+/**
+ * Drizzle ORM schema definitions for Tumbsky
+ *
+ * defines OAuth session storage and Tumbsky-specific tables (users, posts).
+ * indexes optimize common queries (user posts, chronological ordering).
+ */
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import type { AppBskyFeedPost } from '@atcute/bluesky';
 import type { StoredSession, StoredState } from '@atcute/oauth-node-client';
 
+/**
+ * OAuth state storage for PKCE flow
+ *
+ * stores temporary state during OAuth authorization.
+ * indexed by expiresAt for efficient cleanup of expired states.
+ */
 export const oauthState = sqliteTable(
 	'oauth_state',
 	{
@@ -13,6 +25,12 @@ export const oauthState = sqliteTable(
 	(table) => [index('oauth_state_expires_at_idx').on(table.expiresAt)],
 );
 
+/**
+ * OAuth session storage for authenticated users
+ *
+ * stores encrypted OAuth tokens keyed by DID.
+ * indexed by updatedAt for session expiration cleanup.
+ */
 export const oauthSession = sqliteTable(
 	'oauth_session',
 	{
@@ -23,10 +41,11 @@ export const oauthSession = sqliteTable(
 	(table) => [index('oauth_session_updated_at_idx').on(table.updatedAt)],
 );
 
-// tumbsky-specific tables
-
 /**
- * users table for storing user-specific settings and custom CSS
+ * users table for Tumbsky-specific settings
+ *
+ * stores custom CSS, theme preferences, and handle for each user.
+ * separate from OAuth session to allow settings persistence across re-authentication.
  */
 export const users = sqliteTable('users', {
 	did: text('did').primaryKey(),
@@ -38,7 +57,11 @@ export const users = sqliteTable('users', {
 });
 
 /**
- * posts table for storing Bluesky posts (app.bsky.feed.post)
+ * posts table for cached Bluesky posts
+ *
+ * stores denormalized post data for fast rendering without ATProto API calls.
+ * indexed by userDid for user page queries and createdAt for chronological ordering.
+ * embedData stores structured embed info (images, quotes, etc.) as JSON.
  */
 export const posts = sqliteTable(
 	'posts',

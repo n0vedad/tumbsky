@@ -1,3 +1,9 @@
+/**
+ * HMAC-signed cookies for session integrity
+ *
+ * prevents cookie tampering by appending HMAC-SHA256 signatures.
+ * uses timing-safe comparison to prevent timing attacks on signature validation.
+ */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import type { Cookies } from '@sveltejs/kit';
@@ -8,23 +14,47 @@ import { fromBase64Url, toBase64Url } from '@atcute/multibase';
 
 const SEPARATOR = '.';
 
+/**
+ * retrieves COOKIE_SECRET from environment with Railway build-time handling
+ *
+ * allows Railway to build without COOKIE_SECRET set, but throws at runtime
+ * if the secret is still missing. this prevents build failures while ensuring
+ * production security.
+ *
+ * @returns cookie signing secret
+ * @throws if COOKIE_SECRET not set at runtime
+ */
 const getCookieSecret = (): string => {
-	// use a build-time placeholder if COOKIE_SECRET is not set (for Railway builds)
-	// at runtime, this will throw an error if not properly configured
 	const secret = env.COOKIE_SECRET || 'BUILD_TIME_PLACEHOLDER';
 
+	// detect runtime (DATABASE_URL exists) with missing secret
 	if (secret === 'BUILD_TIME_PLACEHOLDER' && env.DATABASE_URL) {
-		// we're at runtime (DATABASE_URL exists) but COOKIE_SECRET is not set
 		throw new Error(`COOKIE_SECRET is not set`);
 	}
 
 	return secret;
 };
 
+/**
+ * computes HMAC-SHA256 signature for cookie value
+ *
+ * uses COOKIE_SECRET as signing key to ensure signature can only be
+ * created by the server.
+ */
 const hmacSha256 = (data: string): Uint8Array => {
 	return createHmac('sha256', getCookieSecret()).update(data).digest();
 };
 
+/**
+ * verifies and extracts value from signed cookie
+ *
+ * uses timing-safe comparison to prevent timing attacks when validating HMAC signatures.
+ * returns null if signature is invalid or cookie doesn't exist.
+ *
+ * @param cookies cookie store from request
+ * @param name cookie name
+ * @returns extracted value or null if invalid
+ */
 export const getSignedCookie = (cookies: Cookies, name: string): string | null => {
 	const signed = cookies.get(name);
 	if (!signed) {
@@ -48,6 +78,7 @@ export const getSignedCookie = (cookies: Cookies, name: string): string | null =
 		return null;
 	}
 
+	// timing-safe comparison prevents timing attacks
 	if (!timingSafeEqual(got, expected)) {
 		return null;
 	}
@@ -55,6 +86,16 @@ export const getSignedCookie = (cookies: Cookies, name: string): string | null =
 	return value;
 };
 
+/**
+ * sets cookie with HMAC-SHA256 signature
+ *
+ * appends base64url-encoded signature to prevent tampering. format: value.signature
+ *
+ * @param cookies cookie store from request
+ * @param name cookie name
+ * @param value cookie value to sign
+ * @param options cookie options (httpOnly, secure, etc.)
+ */
 export const setSignedCookie = (
 	cookies: Cookies,
 	name: string,

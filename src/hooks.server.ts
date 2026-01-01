@@ -1,3 +1,9 @@
+/**
+ * SvelteKit server hooks - session loading and optional Firehose subscription
+ *
+ * handle() runs on every request to load session from signed cookie.
+ * Tap/Firehose subscription runs in background for real-time post updates.
+ */
 import type { Handle } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -5,8 +11,12 @@ import { env } from '$env/dynamic/private';
 import { SESSION_COOKIE } from '$lib/server/auth';
 import { getSignedCookie } from '$lib/server/auth/signed-cookie';
 
+/**
+ * loads session from signed cookie into event.locals
+ *
+ * runs on every HTTP request. session is validated via HMAC signature.
+ */
 export const handle: Handle = async ({ event, resolve }) => {
-	// Load session from cookie
 	const sessionDid = getSignedCookie(event.cookies, SESSION_COOKIE);
 
 	if (sessionDid) {
@@ -16,7 +26,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-// Tap/Firehose integration is optional
+// optional Tap/Firehose integration for real-time post updates
 // if TAP_URL is not set, users will need to manually sync posts
 if (env.TAP_URL) {
 	const { TapClient } = await import('@atcute/tap');

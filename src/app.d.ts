@@ -1,18 +1,19 @@
-// See https://svelte.dev/docs/kit/types#app.d.ts
-
+/**
+ * SvelteKit global type definitions
+ *
+ * extends App.Locals with session and auth context, making them available
+ * in all server-side code via event.locals
+ */
 import type { AuthContext } from '$lib/server/auth';
 
-// for information about these interfaces
 declare global {
 	namespace App {
-		// interface Error {}
 		interface Locals {
+			// cached OAuth client with session (set by requireAuth())
 			auth?: AuthContext;
+			// minimal session data from signed cookie (set by hooks.server.ts)
 			session?: { did: `did:${string}:${string}` };
 		}
-		// interface PageData {}
-		// interface PageState {}
-		// interface Platform {}
 	}
 }
 

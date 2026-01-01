@@ -1,3 +1,9 @@
+/**
+ * post synchronization and database operations
+ *
+ * fetches posts from Bluesky API and caches them in database.
+ * denormalizes post data (text, embeds, images) for fast rendering.
+ */
 import { desc, eq } from 'drizzle-orm';
 
 import type { AppBskyFeedPost } from '@atcute/bluesky';
@@ -8,14 +14,17 @@ import { db } from '$lib/server/db';
 import { posts } from '$lib/server/db/schema';
 
 /**
- * fetches posts from Bluesky API for a given user
- * @param client authenticated client
+ * fetches posts from Bluesky API for a user
+ *
+ * calls app.bsky.feed.getAuthorFeed XRPC endpoint.
+ * returns feed items including posts, reposts, and replies.
+ *
+ * @param client authenticated ATProto client
  * @param did user's DID
- * @param limit number of posts to fetch (default: 50)
- * @returns array of posts from the API
+ * @param limit number of posts to fetch (max 100)
+ * @returns array of feed items with post data
  */
 export const fetchPostsFromApi = async (client: Client, did: Did, limit: number = 50) => {
-	// use XRPC to call the getAuthorFeed endpoint
 	const response = await ok(
 		client.get('app.bsky.feed.getAuthorFeed', {
 			params: {
@@ -31,40 +40,41 @@ export const fetchPostsFromApi = async (client: Client, did: Did, limit: number 
 };
 
 /**
- * saves a post to the database
+ * saves or updates a post in database
+ *
+ * extracts text, images, and embed data for fast rendering.
+ * upserts to handle both new posts and edits (when CID changes).
+ * stores full record as JSON for future flexibility.
+ *
  * @param userDid user's DID
- * @param uri post URI
- * @param cid post CID
- * @param record post record
+ * @param uri post URI (at://did/app.bsky.feed.post/rkey)
+ * @param cid post CID (content hash)
+ * @param record post record from API
  */
 export const savePost = async (userDid: Did, uri: string, cid: string, record: AppBskyFeedPost.Main) => {
 	const now = Date.now();
 
-	// extract text from post
 	const text = record.text || '';
 
-	// check for images
+	// detect image embeds (direct or with media)
 	const hasImages =
 		record.embed?.$type === 'app.bsky.embed.images' ||
 		record.embed?.$type === 'app.bsky.embed.recordWithMedia';
 
-	// check for any embed
 	const hasEmbed = !!record.embed;
 
-	// store embed data as JSON if present
+	// serialize embed for rendering (images, quotes, external links)
 	const embedData = record.embed ? JSON.stringify(record.embed) : null;
 
-	// parse createdAt timestamp
 	const createdAt = new Date(record.createdAt).getTime();
 
-	// extract rkey from URI (format: at://did/app.bsky.feed.post/rkey)
+	// extract rkey from URI (at://did/app.bsky.feed.post/rkey)
 	const rkey = uri.split('/').pop() || '';
 
-	// check if post already exists
 	const existingPost = await db.select().from(posts).where(eq(posts.uri, uri)).get();
 
 	if (existingPost) {
-		// update existing post
+		// update if CID changed (post was edited)
 		await db
 			.update(posts)
 			.set({
@@ -100,10 +110,15 @@ export const savePost = async (userDid: Did, uri: string, cid: string, record: A
 };
 
 /**
- * syncs posts from Bluesky API to database for a user
- * @param client authenticated client
+ * syncs user posts from Bluesky API to database
+ *
+ * fetches recent posts and saves them. filters out reposts to only store
+ * original posts by this user. called manually via /api/sync or automatically
+ * via Firehose ingestion.
+ *
+ * @param client authenticated ATProto client
  * @param did user's DID
- * @param limit number of posts to fetch (default: 50)
+ * @param limit number of posts to fetch
  * @returns number of posts synced
  */
 export const syncUserPosts = async (client: Client, did: Did, limit: number = 50) => {
@@ -112,11 +127,11 @@ export const syncUserPosts = async (client: Client, did: Did, limit: number = 50
 	let syncedCount = 0;
 
 	for (const item of feed) {
-		// only sync posts authored by this user (not reposts)
+		// skip reposts (only sync posts authored by this user)
 		if (item.post.author.did === did) {
-			// check if this is actually a post (not a reply without checking)
 			const record = item.post.record as AppBskyFeedPost.Main;
 
+			// verify it's a post record (not a different type)
 			if (record.$type === 'app.bsky.feed.post') {
 				await savePost(did, item.post.uri, item.post.cid, record);
 				syncedCount++;
@@ -128,10 +143,14 @@ export const syncUserPosts = async (client: Client, did: Did, limit: number = 50
 };
 
 /**
- * gets posts for a user from database
+ * retrieves posts for a user from database
+ *
+ * returns cached posts ordered chronologically.
+ * avoids API calls for fast page rendering.
+ *
  * @param did user's DID
- * @param limit number of posts to return (default: 50)
- * @returns array of posts
+ * @param limit number of posts to return
+ * @returns array of posts in descending order by createdAt
  */
 export const getUserPosts = async (did: Did, limit: number = 50) => {
 	return await db
@@ -144,9 +163,10 @@ export const getUserPosts = async (did: Did, limit: number = 50) => {
 };
 
 /**
- * gets a single post by URI
- * @param uri post URI
- * @returns post or undefined if not found
+ * retrieves a single post by URI
+ *
+ * @param uri post URI (at://did/app.bsky.feed.post/rkey)
+ * @returns post record or undefined if not found
  */
 export const getPostByUri = async (uri: string) => {
 	return await db.select().from(posts).where(eq(posts.uri, uri)).get();
@@ -154,7 +174,10 @@ export const getPostByUri = async (uri: string) => {
 
 /**
  * deletes a post from database
- * @param uri post URI
+ *
+ * called when post is deleted via Firehose event.
+ *
+ * @param uri post URI to delete
  */
 export const deletePost = async (uri: string) => {
 	await db.delete(posts).where(eq(posts.uri, uri)).run();

@@ -1,24 +1,29 @@
+/**
+ * SvelteKit configuration
+ *
+ * uses adapter-node for Railway/Node.js deployment.
+ * remoteFunctions enables server-side form actions in .remote.ts files.
+ * experimental async compiler improves server-side rendering performance.
+ */
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	// Consult https://svelte.dev/docs/kit/integrations
-	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
 	compilerOptions: {
 		experimental: {
+			// async compiler for better SSR performance
 			async: true,
 		},
 	},
 
 	kit: {
-		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
+		// adapter-node for Railway/Node.js deployment
 		adapter: adapter(),
 		experimental: {
+			// enables *.remote.ts server-side form actions
 			remoteFunctions: true,
 		},
 	},

@@ -1,31 +1,52 @@
+/**
+ * CSS sanitization to prevent XSS attacks
+ *
+ * blocks dangerous CSS features (IE behaviors, javascript: URLs, expression()).
+ * uses postcss-safe-parser to handle malicious input gracefully.
+ * removes !important from position:fixed/absolute to prevent UI overlay attacks.
+ */
 import postcss from 'postcss';
 // @ts-expect-error - no types available for postcss-safe-parser
 import safeParser from 'postcss-safe-parser';
 
 /**
- * list of dangerous CSS properties that should be blocked
+ * CSS properties blocked for security
+ *
+ * behavior/binding: IE-specific features that can execute code
+ * filter: old IE filter syntax with security issues
  */
 const BLOCKED_PROPERTIES = new Set(['behavior', '-moz-binding', 'binding', 'link', 'filter']);
 
 /**
- * list of dangerous CSS functions that should be blocked
+ * CSS functions blocked for security
+ *
+ * expression(): IE-specific JavaScript execution
+ * javascript:/vbscript:: protocol-based XSS
+ * import: can load external stylesheets with bypasses
  */
 const BLOCKED_FUNCTIONS = ['expression', 'javascript', 'vbscript', 'import', 'url-prefix', 'domain'];
 
 /**
- * list of allowed at-rules
+ * at-rules allowed in user CSS
+ *
+ * permits styling features (media queries, animations, fonts) while blocking
+ * dangerous at-rules like @import that could load external content.
  */
 const ALLOWED_AT_RULES = new Set(['media', 'supports', 'keyframes', 'font-face', 'container']);
 
 /**
- * validates if a CSS value is safe
- * @param value CSS property value
- * @returns true if safe, false otherwise
+ * checks if CSS value contains dangerous functions or protocols
+ *
+ * detects javascript: URLs, IE expression() functions, and data: URLs with scripts.
+ * case-insensitive to catch obfuscation attempts.
+ *
+ * @param value CSS property value to validate
+ * @returns true if safe, false if contains dangerous content
  */
 function isValueSafe(value: string): boolean {
 	const lowerValue = value.toLowerCase();
 
-	// check for dangerous functions
+	// check for dangerous CSS functions
 	for (const func of BLOCKED_FUNCTIONS) {
 		if (lowerValue.includes(func + '(')) {
 			return false;
@@ -37,7 +58,7 @@ function isValueSafe(value: string): boolean {
 		return false;
 	}
 
-	// check for data: URLs with scripts
+	// check for data: URLs with embedded scripts
 	if (lowerValue.includes('data:') && lowerValue.includes('script')) {
 		return false;
 	}
@@ -46,16 +67,21 @@ function isValueSafe(value: string): boolean {
 }
 
 /**
- * sanitizes CSS to prevent XSS attacks
- * @param css user-provided CSS string
+ * sanitizes user-provided CSS to prevent XSS attacks
+ *
+ * uses postcss-safe-parser to handle malicious input gracefully. blocks IE-specific
+ * properties, javascript: URLs, and unsafe CSS functions. 100KB size limit to prevent DoS.
+ * removes !important from position fixed/absolute to prevent UI overlay attacks.
+ *
+ * @param css raw user CSS
  * @returns sanitized CSS or null if invalid
+ * @throws if CSS is too large (>100KB)
  */
 export async function sanitizeCSS(css: string): Promise<string | null> {
 	if (!css || typeof css !== 'string') {
 		return null;
 	}
 
-	// trim and check length (max 100KB)
 	const trimmed = css.trim();
 	if (trimmed.length === 0) {
 		return null;
@@ -65,41 +91,41 @@ export async function sanitizeCSS(css: string): Promise<string | null> {
 	}
 
 	try {
-		// parse CSS with safe parser (doesn't throw on invalid CSS)
+		// postcss-safe-parser handles malicious/broken CSS gracefully
 		// @ts-expect-error - parser option exists but is not in types
 		const root = postcss.parse(trimmed, { parser: safeParser });
 
-		// walk through all nodes and sanitize
+		// remove dangerous at-rules (@import, etc.)
 		root.walkAtRules((rule) => {
-			// remove disallowed at-rules
 			if (!ALLOWED_AT_RULES.has(rule.name.toLowerCase())) {
 				rule.remove();
 				return;
 			}
 
-			// block @import specifically
+			// double-check @import is blocked (redundant but explicit)
 			if (rule.name.toLowerCase() === 'import') {
 				rule.remove();
 			}
 		});
 
+		// sanitize CSS declarations
 		root.walkDecls((decl) => {
 			const prop = decl.prop.toLowerCase();
 			const value = decl.value;
 
-			// remove blocked properties
+			// remove IE behaviors and other dangerous properties
 			if (BLOCKED_PROPERTIES.has(prop)) {
 				decl.remove();
 				return;
 			}
 
-			// check if value is safe
+			// remove declarations with unsafe values
 			if (!isValueSafe(value)) {
 				decl.remove();
 				return;
 			}
 
-			// remove !important from position: fixed/absolute to prevent overlay attacks
+			// strip !important from position fixed/absolute to prevent UI overlays
 			if (prop === 'position' && (value === 'fixed' || value === 'absolute')) {
 				if (decl.important) {
 					decl.important = false;
@@ -107,7 +133,7 @@ export async function sanitizeCSS(css: string): Promise<string | null> {
 			}
 		});
 
-		// remove comments (could contain injection attempts)
+		// remove comments (potential injection vectors)
 		root.walkComments((comment) => {
 			comment.remove();
 		});
@@ -121,8 +147,12 @@ export async function sanitizeCSS(css: string): Promise<string | null> {
 
 /**
  * validates CSS without modifying it
+ *
+ * wrapper around sanitizeCSS for validation-only use cases.
+ * returns structured error information.
+ *
  * @param css user-provided CSS string
- * @returns validation result with errors
+ * @returns validation result with errors array
  */
 export async function validateCSS(css: string): Promise<{ valid: boolean; errors: string[] }> {
 	const errors: string[] = [];

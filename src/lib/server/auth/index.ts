@@ -1,3 +1,9 @@
+/**
+ * authentication context and session validation
+ *
+ * provides requireAuth() to enforce authenticated sessions across routes.
+ * uses signed cookies to prevent tampering and caches OAuth clients per request.
+ */
 import { error } from '@sveltejs/kit';
 
 import { Client } from '@atcute/client';
@@ -26,6 +32,12 @@ export interface AuthContext {
 	client: Client;
 }
 
+/**
+ * checks if error indicates OAuth session is no longer valid
+ *
+ * detects token refresh failures, revoked tokens, and auth method changes
+ * that require re-authentication.
+ */
 const isSessionInvalidError = (err: unknown): boolean => {
 	return (
 		err instanceof TokenRefreshError ||
@@ -36,15 +48,20 @@ const isSessionInvalidError = (err: unknown): boolean => {
 };
 
 /**
- * requires an authenticated session, throwing if not signed in or session is invalid.
- * caches the result in locals for successive calls within the same request.
- * @returns authenticated session and client
- * @throws if not signed in or OAuth session is invalid
+ * requires an authenticated session, throwing if not signed in or session is invalid
+ *
+ * validates signed cookie, restores OAuth session, and creates authenticated client.
+ * caches result in event.locals.auth to avoid redundant OAuth calls within same request.
+ * deletes session cookie if OAuth session is expired/revoked to trigger re-login.
+ *
+ * @returns authenticated session with DID and ATProto client
+ * @throws 401 if not signed in or session expired
+ * @throws 503 if OAuth not configured (requires HTTPS URL)
  */
 export const requireAuth = async (): Promise<AuthContext> => {
 	const { locals, cookies } = getRequestEvent();
 
-	// return cached result if available
+	// return cached result if available (avoids redundant OAuth calls)
 	if (locals.auth) {
 		return locals.auth;
 	}
@@ -65,6 +82,7 @@ export const requireAuth = async (): Promise<AuthContext> => {
 	}
 
 	try {
+		// restore OAuth session and create authenticated client
 		const session = await oauth.restore(did);
 		const client = new Client({ handler: session });
 
@@ -76,6 +94,7 @@ export const requireAuth = async (): Promise<AuthContext> => {
 		locals.auth = auth;
 		return auth;
 	} catch (err) {
+		// delete cookie on session errors to force re-authentication
 		if (isSessionInvalidError(err)) {
 			cookies.delete(SESSION_COOKIE, { path: '/' });
 
