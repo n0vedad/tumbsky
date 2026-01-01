@@ -8,13 +8,13 @@ Tumbsky allows you to display your Bluesky posts on a personalized page with cus
 similar to how Tumblr blogs work. Each user gets their own customizable page where they can style
 their posts however they want.
 
-### Features (MVP)
+### Features
 
 - 🔐 **OAuth Login** with your Bluesky account
 - 📝 **Display your posts** in a clean, customizable format
 - 🎨 **Custom CSS** - Style your posts however you want
 - 🔗 **Personal URL** - Share your styled page (e.g., `tumbsky.app/@yourhandle`)
-- ⚡ **Live updates** - New posts appear automatically
+- ⚡ **Live updates** - New posts appear automatically via Firehose
 
 ### What Tumbsky is NOT (for now)
 
@@ -29,105 +29,185 @@ Posts are created on bsky.app and displayed beautifully on Tumbsky.
 - **Frontend**: SvelteKit + TypeScript
 - **Backend**: SvelteKit (SSR)
 - **Database**: libSQL/SQLite with Drizzle ORM
-- **ATProto**: @atcute/\* libraries
+- **ATProto**: @atcute/* libraries
 - **Real-time**: Tap (ATProto Firehose)
+- **Deployment**: Railway
 
 Based on the [atcute-statusphere-example](https://github.com/mary-ext/atcute-statusphere-example).
 
-## Setup
+## Local Development
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm
-- Docker (for Tap)
+- Node.js 20+
+- pnpm 10+
+- A public HTTPS URL (via tunnel or your own server)
 
-### Installation
+### Quick Start
 
-1. Install dependencies:
-
+1. **Clone and install:**
    ```sh
+   git clone https://github.com/yourusername/tumbsky.git
+   cd tumbsky
    pnpm install
    ```
 
-2. Set up environment variables:
-
-   ```sh
-   pnpm env:setup
-   ```
-
-   This creates a `.env` file with:
-   - `COOKIE_SECRET` - Random secret for signing cookies
-   - `OAUTH_PRIVATE_KEY_JWK` - ES256 keypair for OAuth
-
-3. Configure additional environment variables in `.env`:
-
-   ```sh
-   # Database
-   DATABASE_URL=file:local.db
-
-   # OAuth - requires public URL for development
-   OAUTH_PUBLIC_URL=https://your-tunnel-url.example.com
-
-   # Tap (optional, for real-time updates)
-   TAP_URL=http://localhost:2480
-   TAP_ADMIN_PASSWORD=
-   ```
-
-4. Set up a tunnel for local development:
-
-   OAuth requires a publicly accessible URL. Use [ngrok](https://ngrok.com/) or
-   [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/):
-
-   ```sh
-   # Example with cloudflared
-   cloudflared tunnel --url http://localhost:5173
-   ```
-
-   Add the tunnel URL to `.env` as `OAUTH_PUBLIC_URL`.
-
-5. Run database migrations:
-
-   ```sh
-   pnpm db:migrate
-   ```
-
-6. (Optional) Start Tap for real-time updates:
-
-   ```sh
-   docker run -p 2480:2480 \
-     -v ./data:/data \
-     -e TAP_DATABASE_URL=sqlite:///data/tap.db \
-     -e TAP_SIGNAL_COLLECTION=app.bsky.feed.post \
-     -e TAP_COLLECTION_FILTERS=app.bsky.feed.post,app.bsky.actor.profile \
-     ghcr.io/bluesky-social/indigo/tap:latest
-   ```
-
-7. Start the dev server:
-
+2. **Run the dev script:**
    ```sh
    pnpm dev
    ```
 
-   Visit the tunnel URL to access Tumbsky.
+   The `dev.sh` script will:
+   - Create `.env` if it doesn't exist
+   - Generate OAuth keys (`OAUTH_PRIVATE_KEY_JWK`, `COOKIE_SECRET`) via `pnpm env:setup`
+   - Check if `OAUTH_PUBLIC_URL` is configured
+   - Provide instructions for setting up a tunnel if needed
+   - Start the Vite dev server
 
-## Development
+3. **Set up a tunnel (if needed):**
 
-### Scripts
+   OAuth requires a public HTTPS URL. Choose one of these options:
 
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm preview` - Preview production build
-- `pnpm check` - Type checking
-- `pnpm format` - Format code with Prettier
-- `pnpm lint` - Check code formatting
+   **Option A: Cloudflared**
+   ```sh
+   cloudflared tunnel --url http://localhost:5173
+   ```
+   Copy the `https://` URL and add it to `.env`:
+   ```sh
+   OAUTH_PUBLIC_URL=https://your-random-url.trycloudflare.com
+   ```
+
+   **Option B: ngrok**
+   ```sh
+   ngrok http 5173
+   ```
+   Copy the `https://` URL and add it to `.env`:
+   ```sh
+   OAUTH_PUBLIC_URL=https://your-id.ngrok.io
+   ```
+
+   **Option C: Your own server**
+   - Set up a reverse proxy with nginx/caddy
+   - Configure SSL with Let's Encrypt
+   - Point `OAUTH_PUBLIC_URL` to your domain
+
+4. **Access Tumbsky:**
+   - Visit your `OAUTH_PUBLIC_URL`
+   - Log in with your Bluesky account
+
+### OAuth Metadata Hosting
+
+ATProto OAuth requires serving two files publicly:
+- `${OAUTH_PUBLIC_URL}/oauth-client-metadata.json`
+- `${OAUTH_PUBLIC_URL}/jwks.json`
+
+**These are served automatically** by SvelteKit routes:
+- [`/oauth-client-metadata.json/+server.ts`](src/routes/oauth-client-metadata.json/+server.ts)
+- [`/jwks.json/+server.ts`](src/routes/jwks.json/+server.ts)
+
+No external hosting needed!
+
+### Environment Variables
+
+After running `pnpm dev`, your `.env` will contain:
+
+```sh
+# Database Configuration
+DATABASE_URL=file:local.db
+
+# OAuth Configuration (auto-generated by pnpm env:setup)
+OAUTH_PUBLIC_URL=https://your-tunnel-url.example.com
+OAUTH_PRIVATE_KEY_JWK={"kty":"EC","crv":"P-256",...}
+COOKIE_SECRET=random-secret
+
+# Optional: Tap/Firehose for real-time updates
+# TAP_URL=http://localhost:2480
+# TAP_ADMIN_PASSWORD=
+```
 
 ### Database
 
-- `pnpm db:push` - Push schema changes
-- `pnpm db:generate` - Generate migrations
+- `pnpm db:push` - Push schema changes to database
+- `pnpm db:generate` - Generate migration files
 - `pnpm db:migrate` - Run migrations
 - `pnpm db:studio` - Open Drizzle Studio
+
+### Code Quality
+
+- `pnpm check` - Type checking with Svelte
+- `pnpm format` - Format code with Prettier
+- `pnpm lint` - Check code formatting
+
+## Production Deployment (Railway)
+
+### Prerequisites
+
+- [Railway account](https://railway.app)
+- [Turso database](https://turso.tech) (optional, or use local SQLite)
+
+### Deploy to Railway
+
+1. **Create a new Railway project:**
+   - Click "Deploy from GitHub repo"
+   - Select your Tumbsky repository
+
+2. **Configure environment variables:**
+
+   In Railway's dashboard, add:
+   ```sh
+   # Database (if using Turso)
+   DATABASE_URL=libsql://your-db.turso.io
+   TURSO_AUTH_TOKEN=your-turso-token
+
+   # OAuth (generate locally with pnpm env:setup)
+   OAUTH_PRIVATE_KEY_JWK={"kty":"EC","crv":"P-256",...}
+   COOKIE_SECRET=random-secret-here
+
+   # Public URL (Railway provides this automatically)
+   OAUTH_PUBLIC_URL=https://your-app.up.railway.app
+   ```
+
+3. **Deploy:**
+   - Railway will automatically detect the build configuration from `railway.json`
+   - The app will build and deploy automatically
+   - OAuth metadata will be served automatically at:
+     - `https://your-app.up.railway.app/oauth-client-metadata.json`
+     - `https://your-app.up.railway.app/jwks.json`
+
+4. **Run database migrations:**
+   ```sh
+   # From your local machine, with Turso credentials
+   DATABASE_URL=libsql://your-db.turso.io \
+   TURSO_AUTH_TOKEN=your-token \
+   pnpm db:push
+   ```
+
+### Railway Configuration
+
+The `railway.json` file configures:
+- Build command: `pnpm build`
+- Start command: `node build/index.js`
+- Node version: 20.x
+
+### Using Turso Database
+
+1. Create a Turso database:
+   ```sh
+   turso db create tumbsky
+   turso db show tumbsky
+   ```
+
+2. Get the connection details:
+   ```sh
+   turso db show tumbsky --url
+   turso db tokens create tumbsky
+   ```
+
+3. Add to Railway environment variables:
+   ```sh
+   DATABASE_URL=libsql://your-db.turso.io
+   TURSO_AUTH_TOKEN=your-token
+   ```
 
 ## Project Structure
 
@@ -135,17 +215,38 @@ Based on the [atcute-statusphere-example](https://github.com/mary-ext/atcute-sta
 tumbsky/
 ├── src/
 │   ├── lib/
-│   │   ├── components/     # Svelte components
-│   │   ├── server/        # Server-side code
-│   │   │   ├── auth/      # Authentication
-│   │   │   ├── db/        # Database
-│   │   │   ├── oauth/     # OAuth client
-│   │   │   └── tap/       # Firehose integration
-│   │   └── utils/         # Utilities
-│   └── routes/            # SvelteKit routes
-├── drizzle/               # Database migrations
-├── static/                # Static assets
-└── .env                   # Environment variables
+│   │   ├── assets/          # SVG logos, images
+│   │   ├── components/      # Svelte components
+│   │   │   ├── header.svelte
+│   │   │   ├── post-card.svelte
+│   │   │   └── post-list.svelte
+│   │   ├── server/          # Server-side code
+│   │   │   ├── auth/        # Cookie signing
+│   │   │   ├── db/          # Drizzle schema & client
+│   │   │   ├── oauth/       # OAuth client setup
+│   │   │   ├── posts/       # Post fetching & syncing
+│   │   │   ├── users/       # User management
+│   │   │   ├── tap/         # Firehose integration
+│   │   │   └── css-sanitizer.ts
+│   │   └── types.ts         # TypeScript types
+│   ├── routes/              # SvelteKit routes
+│   │   ├── +page.svelte     # Homepage
+│   │   ├── @[handle]/       # User profile pages
+│   │   ├── settings/        # CSS editor
+│   │   ├── login/           # OAuth login
+│   │   ├── oauth/callback/  # OAuth callback
+│   │   ├── oauth-client-metadata.json/  # OAuth metadata endpoint
+│   │   ├── jwks.json/       # JWKS endpoint
+│   │   └── api/             # API endpoints
+│   └── hooks.server.ts      # Session handling
+├── drizzle/                 # Database migrations
+│   ├── 0001_initial_users_and_posts_tables.sql
+│   └── 0002_add_posts_indexes.sql
+├── scripts/
+│   ├── dev.sh               # Development setup script
+│   └── setup-env.mjs        # Environment setup
+├── railway.json             # Railway deployment config
+└── .env.example             # Environment template
 ```
 
 ## Contributing
@@ -154,11 +255,10 @@ See [PLAN.md](PLAN.md) for the project roadmap and open questions.
 
 ## License
 
-TBD
+MIT
 
 ## Acknowledgments
 
 - Built with [atcute](https://github.com/mary-ext/atcute) by Mary
-- Based on [Statusphere example](https://github.com/bluesky-social/statusphere-example-app) by
-  Bluesky
+- Based on [atcute-statusphere-example](https://github.com/mary-ext/atcute-statusphere-example)
 - Inspired by Tumblr's customizable blogs
